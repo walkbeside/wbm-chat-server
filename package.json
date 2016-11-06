@@ -10,7 +10,8 @@
     "mqtt-cli": "^0.2.4"
   },
   "dependencies": {
-    "mosca": "^2.2.0",
-    "mqtt": "^2.0.1"
+    "mosca": "2.2.0",
+    "mqtt": "^2.0.1",
+    "redis": "2.6.3"
   }
 }
