@@ -10,4 +10,9 @@ We intend to use NodeJS and [https://github.com/mcollina/mosca]() as the MQTT br
 
 A test ionic App will be  om api/www/*
 
+To Run the MQTT server, just run
+
+    npm run mqtt
+
+So far this is only a basic server.  It doesn't do things like inject the timestamp, etc
 
