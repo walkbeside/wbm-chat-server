@@ -1,0 +1,15 @@
+{
+  "name": "wbm-chat-server",
+  "version": "0.0.0",
+  "description": "Chat server for the Walk Beside App",
+  "author": "Ryan Seal <allegedlin@gmaiol.com>",
+  "scripts": {
+    "mqtt": "node mqtt/app.js"
+  },
+  "devDependencies": {
+    "mqtt-cli": "^0.2.4"
+  },
+  "dependencies": {
+    "mqtt": "^2.0.1"
+  }
+}
