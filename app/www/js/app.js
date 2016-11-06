@@ -1,6 +1,6 @@
-angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'ngMQTT'])
+angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment'])
 
-.config(['$stateProvider', '$urlRouterProvider', 'MQTTProvider', function($stateProvider, $urlRouterProvider, MQTTProvider) {
+.config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider) {
   $stateProvider
 
   .state('UserMessages', {
@@ -10,32 +10,24 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
   });
 
   $urlRouterProvider.otherwise('/UserMessages');
-
-  MQTTProvider.setHref('ws://127.0.0.1:3000');
 }])
 
 
 .controller('UserMessagesCtrl', ['$scope', '$rootScope', '$state',
   '$stateParams', 'MockService', '$ionicActionSheet',
-  '$ionicPopup', '$ionicScrollDelegate', '$timeout', '$interval', 'MQTTService',
+  '$ionicPopup', '$ionicScrollDelegate', '$timeout', '$interval',
   function($scope, $rootScope, $state, $stateParams, MockService,
-    $ionicActionSheet,
-    $ionicPopup, $ionicScrollDelegate, $timeout, $interval, MQTTService) {
+    $ionicActionSheet, $ionicPopup, $ionicScrollDelegate, $timeout, $interval) {
 
-    // When a message is sent to openChatRoom display it
-    MQTTService.on('openChatRoom', function(data) {
+    // can be any of  'mqtt', 'mqtts', 'tcp', 'tls', 'ws', 'wss'.
+    // https://github.com/mqttjs/MQTT.js
+    var client  = mqtt.connect('ws://localhost:3000');
 
-      console.dir(data);
-      $scope.messages.push({
-        userId: '534b8e5aaa5e7afc1b23e69b',
-        date: new Date(),
-        text: JSON.stringify(data.messages)
-      });
-
-      $timeout(function() {
-        keepKeyboardOpen();
-        viewScroll.scrollBottom(true);
-      }, 0);
+    console.log('connecting ....');
+    client.on('connect', function () {
+      //client.subscribe('presence')
+      //client.publish('presence', 'Hello mqtt')
+      console.log('connected');
     });
 
     // mock acquiring data via $stateParams
@@ -43,7 +35,7 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
       _id: '534b8e5aaa5e7afc1b23e69b',
       pic: 'http://ionicframework.com/img/docs/venkman.jpg',
       username: 'Venkman'
-    }
+    };
 
     // this could be on $rootScope rather than in $stateParams
     $scope.user = {
@@ -67,7 +59,7 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
       console.log('UserMessages $ionicView.enter');
 
       getMessages();
-      
+
       $timeout(function() {
         footerBar = document.body.querySelector('#userMessagesView .bar-footer');
         scroller = document.body.querySelector('#userMessagesView .scroll-content');
@@ -77,6 +69,35 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
       messageCheckTimer = $interval(function() {
         // here you could check for new messages if your app doesn't use push notifications or user disabled them
       }, 20000);
+
+
+      client.subscribe("m/chat-room-id", { qos: 0 }, function(err, granted) {
+          if (err) console.error(err);
+      });
+
+      client.on('message', function (topic, payload) {
+          // payload is Buffer
+          console.log('on message: ', topic, payload.toString());
+
+          var msgObj;
+          try {
+            msgObj = JSON.parse(payload.toString());
+          } catch (e ){
+            msgObj = payload.toString();
+          }
+
+          $scope.messages.push({
+            userId: '534b8e5aaa5e7afc1b23e69b',
+            date: msgObj.w || new Date(),
+            text: msgObj.m || 'No Message?!'
+          });
+
+          $timeout(function() {
+            keepKeyboardOpen();
+            viewScroll.scrollBottom(true);
+          }, 0);
+
+        });
     });
 
     $scope.$on('$ionicView.leave', function() {
@@ -85,6 +106,11 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
       if (angular.isDefined(messageCheckTimer)) {
         $interval.cancel(messageCheckTimer);
         messageCheckTimer = undefined;
+      }
+
+      if (client) {
+        client.end(false, function() { console.log('client.end()'); });
+        client = null;
       }
     });
 
@@ -97,9 +123,6 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
     function getMessages() {
       // the service is mock but you would probably pass the toUser's GUID here
       //
-
-        
-
 
       MockService.getUserMessages({
         toUserId: $scope.toUser._id
@@ -129,7 +152,7 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
       // you can't see the effect of this in the browser it needs to be used on a real device
       // for some reason the one time blur event is not firing in the browser but does on devices
       keepKeyboardOpen();
-      
+
       //MockService.sendMessage(message).then(function(data) {
       $scope.input.message = '';
 
@@ -141,15 +164,15 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
 
       $scope.messages.push(message);
 
-      var wbmmsg = {
+      var msgObj = {
         s: $scope.user._id,
         m: message.text
       };
 
-      MQTTService.send('openChatRoom', wbmmsg);
-      //});
+      console.log('client.publish(): ', msgObj);
+      client.publish('w/chat-room-id', JSON.stringify(msgObj));
     };
-    
+
     // this keeps the keyboard open on a device only after sending a message, it is non obtrusive
     function keepKeyboardOpen() {
       console.log('keepKeyboardOpen');
@@ -183,7 +206,7 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
 
               break;
           }
-          
+
           return true;
         }
       });
@@ -197,22 +220,22 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
         // go to other users profile
       }
     };
-    
+
     // I emit this event from the monospaced.elastic directive, read line 480
     $scope.$on('taResize', function(e, ta) {
       console.log('taResize');
       if (!ta) return;
-      
+
       var taHeight = ta[0].offsetHeight;
       console.log('taHeight: ' + taHeight);
-      
+
       if (!footerBar) return;
-      
+
       var newFooterHeight = taHeight + 10;
       newFooterHeight = (newFooterHeight > 44) ? newFooterHeight : 44;
-      
+
       footerBar.style.height = newFooterHeight + 'px';
-      scroller.style.bottom = newFooterHeight + 'px'; 
+      scroller.style.bottom = newFooterHeight + 'px';
     });
 
 }])
@@ -234,11 +257,11 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
       });
       */
       var deferred = $q.defer();
-      
+
      setTimeout(function() {
         deferred.resolve(getMockMessages());
       }, 1500);
-      
+
       return deferred.promise;
     };
 
@@ -496,7 +519,7 @@ angular.module('monospaced.elastic', [])
                 ta.style.height = mirrorHeight + 'px';
                 scope.$emit('elastic:resize', $ta);
               }
-              
+
               scope.$emit('taResize', $ta); // listen to this in the UserMessagesCtrl
 
               // small delay to prevent an infinite loop
