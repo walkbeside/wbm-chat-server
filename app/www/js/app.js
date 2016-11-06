@@ -11,7 +11,7 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
 
   $urlRouterProvider.otherwise('/UserMessages');
 
-  MQTTProvider.setHref('mqtt://localhost');
+  MQTTProvider.setHref('ws://127.0.0.1:3000');
 }])
 
 
@@ -25,6 +25,7 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
     // When a message is sent to openChatRoom display it
     MQTTService.on('openChatRoom', function(data) {
 
+      console.dir(data);
       $scope.messages.push({
         userId: '534b8e5aaa5e7afc1b23e69b',
         date: new Date(),
@@ -140,7 +141,12 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment', 'n
 
       $scope.messages.push(message);
 
-      MQTTService.send('openChatRoom', message.text);
+      var wbmmsg = {
+        s: $scope.user._id,
+        m: message.text
+      };
+
+      MQTTService.send('openChatRoom', wbmmsg);
       //});
     };
     

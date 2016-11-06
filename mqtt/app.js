@@ -1,6 +1,7 @@
 'use strict';
 
 const mosca = require('mosca');
+const http = require('http');
 const WBMServer = require('./wbmServer.js');
 
 let chats = [];
@@ -14,11 +15,6 @@ let ascoltatore = {
 };
 
 let settings = {
-  http: {
-    port: 3000,
-    bundle: true,
-    static: './'
-  },
   backend: ascoltatore,
 //  logger: { name: 'MoscaServer', level: 'debug' },
   persistence: {
@@ -26,7 +22,11 @@ let settings = {
   }
 };
 
+let httpServer = http.createServer();
 let server = new WBMServer(settings);
+
+httpServer.listen(3000, '127.0.0.1');
+server.attachHttpServer(httpServer);
 
 server.on('clientConnected', function(client) {
   chats.push('m/' + client.id);

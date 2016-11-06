@@ -11,17 +11,15 @@ WBMServer.prototype.constructor = WBMServer;
 
 let messageToJson = (payload) => {
   let obj = {};
+  
+  // In case the payload is a buffer
   let jsonString = payload.toString();
 
   try {
-    obj = JSON.parse(payload);
-    if (typeof obj === 'string') {
-      obj = {
-        m: obj
-      };
-    }
+    obj = JSON.parse(jsonString);
   } catch (e) {
-    obj = JSON.parse('{' + jsonString + '}');
+    // TODO: Log an error if the message is not a JOSN object
+    console.error(e);
   }
 
   return obj;
@@ -43,8 +41,6 @@ WBMServer.prototype.publish = function(packet, client, callback) {
           injectTimestamp( messageToJson(packet.payload) )
         )
 
-        // remove top and tail brackets
-        .replace(/^\{|\}$/g, '')
       );
   console.dir(packet);
   return mosca.Server.prototype.publish.call(this, packet, client, callback);
