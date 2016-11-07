@@ -27,7 +27,7 @@ let messageToJson = (payload) => {
 }
 
 let injectTimestamp = (payload) => {
- 
+  console.log('injecting timestamp');
   payload.w = new Date().getTime();
   return payload;
 }
@@ -35,18 +35,17 @@ let injectTimestamp = (payload) => {
 
 
 WBMServer.prototype.publish = function(packet, client, callback) {
-  if (packet.topic.indexOf('$SYS') !== 0) 
-    packet.payload = new Buffer(
+  if (packet.topic.indexOf('$SYS') !== 0)  {
+    packet.payload = 
         JSON.stringify(
           injectTimestamp( messageToJson(packet.payload) )
-        )
+        );
+  }
 
-      );
-  console.dir(packet);
+  console.log('running publish');
   return mosca.Server.prototype.publish.call(this, packet, client, callback);
+  console.log('finisthed publish');
 }
-
-
 
 
 module.exports = WBMServer;

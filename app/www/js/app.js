@@ -71,7 +71,7 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment'])
       }, 20000);
 
 
-      client.subscribe("m/chat-room-id", { qos: 0 }, function(err, granted) {
+      client.subscribe("m/chat-room-id", { qos: 1 }, function(err, granted) {
           if (err) console.error(err);
       });
 
@@ -170,7 +170,12 @@ angular.module('elastichat', ['ionic', 'monospaced.elastic', 'angularMoment'])
       };
 
       console.log('client.publish(): ', msgObj);
-      client.publish('w/chat-room-id', JSON.stringify(msgObj));
+      client.publish('m/chat-room-id', JSON.stringify(msgObj));
+
+      $timeout(function() {
+        keepKeyboardOpen();
+        viewScroll.scrollBottom(true);
+      }, 0);
     };
 
     // this keeps the keyboard open on a device only after sending a message, it is non obtrusive
